@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PayAxis — Payroll Management</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #0c0e14;
+  --ink2:      #1e2130;
+  --surface:   #f4f3ef;
+  --card:      #ffffff;
+  --accent:    #d4562a;
+  --accent2:   #f0a050;
+  --green:     #2d7a5f;
+  --blue:      #2459a8;
+  --muted:     #8a8f9e;
+  --border:    #ddd9d0;
+  --shadow:    0 2px 16px rgba(0,0,0,.08);
+  --r:         10px;
+  --font-head: 'DM Serif Display', serif;
+  --font-body: 'Outfit', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --sidebar:   240px;
+  --topbar:    60px;
+}
+
+body { font-family: var(--font-body); background: var(--surface); color: var(--ink); min-height: 100vh; }
+
+/* ── Auth ── */
+#auth-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+  background: var(--ink2);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.04) 39px, rgba(255,255,255,.04) 40px),
+                    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.04) 39px, rgba(255,255,255,.04) 40px);
+}
+.auth-card {
+  background: var(--card); border-radius: 18px;
+  padding: 52px 48px; width: 420px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.4);
+  animation: slideUp .5s ease;
+}
+.auth-logo { font-family: var(--font-head); font-size: 2rem; color: var(--accent); margin-bottom: 4px; }
+.auth-tagline { color: var(--muted); font-size: .85rem; margin-bottom: 36px; }
+.auth-card h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 24px; }
+
+label { display: block; font-size: .82rem; font-weight: 500; margin-bottom: 6px; color: var(--ink2); }
+input, select, textarea {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: var(--font-body); font-size: .9rem;
+  background: var(--surface); color: var(--ink); transition: border .2s; outline: none;
+}
+input:focus, select:focus { border-color: var(--accent); background: #fff; }
+.form-group { margin-bottom: 18px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 22px; border-radius: 8px; border: none;
+  font-family: var(--font-body); font-size: .88rem; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.btn-primary   { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #b94520; transform: translateY(-1px); }
+.btn-secondary { background: var(--surface); color: var(--ink2); border: 1.5px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-green  { background: var(--green); color: #fff; }
+.btn-green:hover { background: #246650; transform: translateY(-1px); }
+.btn-red    { background: #c0291a; color: #fff; }
+.btn-red:hover { background: #a02010; transform: translateY(-1px); }
+.btn-sm     { padding: 7px 14px; font-size: .8rem; }
+.btn-full   { width: 100%; justify-content: center; }
+.btn-xl     { padding: 22px 48px; font-size: 1.15rem; border-radius: 14px; min-width: 160px; justify-content: center; }
+
+.error-msg { color: var(--accent); font-size: .83rem; margin-top: 10px; }
+
+/* ── Admin App ── */
+#app { display: none; }
+#app.visible { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sidebar); background: var(--ink2); color: #fff;
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+}
+.sidebar-brand { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.sidebar-brand .logo { font-family: var(--font-head); font-size: 1.5rem; color: var(--accent); }
+.sidebar-brand .sub  { font-size: .72rem; color: rgba(255,255,255,.4); margin-top: 2px; }
+.nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px; cursor: pointer; font-size: .88rem;
+  color: rgba(255,255,255,.65); border-left: 3px solid transparent;
+  transition: all .15s; user-select: none;
+}
+.nav-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+.nav-item.active { color: #fff; border-left-color: var(--accent); background: rgba(212,86,42,.12); }
+.nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+.nav-section { padding: 16px 20px 6px; font-size: .68rem; font-weight: 600; color: rgba(255,255,255,.3); letter-spacing: .08em; text-transform: uppercase; }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.08); font-size: .8rem; color: rgba(255,255,255,.4); }
+.sidebar-footer strong { display: block; color: rgba(255,255,255,.8); }
+
+.main { margin-left: var(--sidebar); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { height: var(--topbar); background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 50; }
+.page-title { font-family: var(--font-head); font-size: 1.4rem; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.content { padding: 28px; flex: 1; }
+
+/* ── Employee Portal ── */
+#employee-portal {
+  display: none; min-height: 100vh;
+  background: var(--ink2);
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,.03) 39px, rgba(255,255,255,.03) 40px),
+                    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,.03) 39px, rgba(255,255,255,.03) 40px);
+  align-items: center; justify-content: center;
+}
+#employee-portal.visible { display: flex; }
+
+.emp-card {
+  background: var(--card); border-radius: 24px;
+  padding: 44px 40px; width: 480px; max-width: 95vw;
+  box-shadow: 0 32px 80px rgba(0,0,0,.4);
+  animation: slideUp .5s ease;
+}
+
+.emp-header { text-align: center; margin-bottom: 32px; }
+.emp-logo { font-family: var(--font-head); font-size: 1.6rem; color: var(--accent); margin-bottom: 16px; }
+.emp-avatar {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; margin: 0 auto 12px;
+  font-family: var(--font-head);
+}
+.emp-name     { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+.emp-role     { color: var(--muted); font-size: .85rem; }
+
+/* Clock */
+.clock-box {
+  background: var(--ink2); border-radius: 14px; padding: 24px;
+  text-align: center; margin-bottom: 20px; position: relative; overflow: hidden;
+}
+.clock-box::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,.015) 8px, rgba(255,255,255,.015) 9px);
+}
+.clock-time { font-family: var(--font-mono); font-size: 2.6rem; color: #fff; letter-spacing: .06em; position: relative; z-index: 1; }
+.clock-date { color: rgba(255,255,255,.45); font-size: .82rem; margin-top: 6px; position: relative; z-index: 1; }
+
+/* Status */
+.status-pill {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; border-radius: 30px; font-weight: 600; font-size: .88rem; margin-bottom: 24px;
+}
+.status-pill.out { background: #fdecea; color: #c0291a; }
+.status-pill.in  { background: #e8f5ef; color: var(--green); }
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+.status-pill.out .dot { background: #c0291a; }
+.status-pill.in  .dot { background: var(--green); animation: pulse 1.5s infinite; }
+
+/* Action buttons */
+.clock-actions { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; }
+
+/* Session */
+.session-box { background: var(--surface); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: .84rem; display: flex; justify-content: space-between; }
+
+/* History */
+.history-title { font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 10px; }
+.hist-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .83rem; }
+.hist-row:last-child { border-bottom: none; }
+.hist-date { font-weight: 600; }
+.hist-sub  { font-size: .74rem; color: var(--muted); margin-top: 2px; }
+.hist-hrs  { font-family: var(--font-mono); color: var(--green); font-weight: 500; }
+.hist-active { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+
+.portal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.portal-footer span { font-size: .78rem; color: var(--muted); }
+
+/* ── Shared ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: var(--card); border-radius: var(--r); padding: 22px 24px; box-shadow: var(--shadow); border-top: 3px solid var(--border); transition: transform .2s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-card.accent { border-top-color: var(--accent); }
+.stat-card.green  { border-top-color: var(--green); }
+.stat-card.blue   { border-top-color: var(--blue); }
+.stat-card.gold   { border-top-color: var(--accent2); }
+.stat-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.stat-value { font-family: var(--font-mono); font-size: 2rem; font-weight: 500; }
+.stat-sub   { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+.data-card { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+.data-card-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); }
+.data-card-head h3 { font-size: 1rem; font-weight: 600; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.tbl thead th { background: var(--surface); padding: 12px 16px; text-align: left; font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); }
+.tbl tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover { background: #faf9f7; }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: .74rem; font-weight: 600; }
+.badge-green  { background: #e8f5ef; color: var(--green); }
+.badge-orange { background: #fef3e8; color: #c06010; }
+.badge-blue   { background: #e8eef8; color: var(--blue); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 999; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 14px; width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.3); animation: slideUp .25s ease; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.modal-head h3 { font-size: 1rem; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); line-height: 1; }
+.modal-body { padding: 24px; }
+.modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+#toast { position: fixed; bottom: 28px; right: 28px; z-index: 9999; background: var(--ink2); color: #fff; padding: 14px 20px; border-radius: 10px; font-size: .88rem; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,.3); transform: translateY(80px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); max-width: 320px; }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { border-left: 4px solid var(--green); }
+#toast.error   { border-left: 4px solid var(--accent); }
+
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; flex-shrink: 0; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+
+@keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.4); } }
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH ═══════════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">PayAxis</div>
+    <div class="auth-tagline">Payroll Management System</div>
+    <h2>Sign in to continue</h2>
+    <div class="form-group">
+      <label>Username</label>
+      <input id="login-user" type="text" placeholder="Enter your username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div id="login-error" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- ═══ EMPLOYEE PORTAL ════════════════════════════════════════════════════ -->
+<div id="employee-portal">
+  <div class="emp-card">
+    <div class="emp-header">
+      <div class="emp-logo">PayAxis</div>
+      <div class="emp-avatar" id="emp-initials">—</div>
+      <div class="emp-name" id="emp-name">—</div>
+      <div class="emp-role" id="emp-role">Employee</div>
+    </div>
+
+    <div class="clock-box">
+      <div class="clock-time" id="live-clock">00:00:00</div>
+      <div class="clock-date" id="live-date">—</div>
+    </div>
+
+    <div class="status-pill out" id="status-pill">
+      <div class="dot"></div>
+      <span id="status-text">Not clocked in</span>
+    </div>
+
+    <div class="clock-actions">
+      <button class="btn btn-green btn-xl" id="btn-in"  onclick="empClockIn()">▶ Clock In</button>
+      <button class="btn btn-red   btn-xl" id="btn-out" onclick="empClockOut()" style="display:none">■ Clock Out</button>
+    </div>
+
+    <div class="session-box" id="session-box" style="display:none">
+      <span style="color:var(--muted)">Session started</span>
+      <strong id="session-start">—</strong>
+    </div>
+
+    <div class="history-title">Recent Attendance</div>
+    <div id="emp-history">
+      <div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Loading...</div>
+    </div>
+
+    <div class="portal-footer">
+      <span>Signed in as <strong id="emp-username">—</strong></span>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN APP ══════════════════════════════════════════════════════════ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo">PayAxis</div>
+      <div class="sub">Admin Panel</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-section">People</div>
+      <div class="nav-item" onclick="navigate('employees')" data-page="employees"><span class="nav-icon">👥</span> Employees</div>
+      <div class="nav-section">Time</div>
+      <div class="nav-item" onclick="navigate('attendance')" data-page="attendance"><span class="nav-icon">🕐</span> Attendance</div>
+      <div class="nav-section">Finance</div>
+      <div class="nav-item" onclick="navigate('payroll')" data-page="payroll"><span class="nav-icon">💰</span> Payroll</div>
+    </nav>
+    <div class="sidebar-footer">
+      <strong id="sidebar-username">—</strong>
+      <span>Administrator</span><br/>
+      <button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;justify-content:center" onclick="doLogout()">Sign Out</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="page-content"></div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-add-emp">
+  <div class="modal">
+    <div class="modal-head"><h3>Add New Employee</h3><button class="modal-close" onclick="closeModal('modal-add-emp')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>First Name</label><input id="emp-fname" type="text"/></div>
+        <div class="form-group"><label>Last Name</label><input id="emp-lname" type="text"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input id="emp-email" type="email"/></div>
+        <div class="form-group"><label>Phone</label><input id="emp-phone" type="text"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Username</label><input id="emp-username-field" type="text"/></div>
+        <div class="form-group"><label>Password</label><input id="emp-password" type="password"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Position</label><input id="emp-position" type="text"/></div>
+        <div class="form-group"><label>Hourly Rate (LSL)</label><input id="emp-rate" type="number" step="0.01"/></div>
+      </div>
+      <div class="form-group"><label>Hire Date</label><input id="emp-hire" type="date"/></div>
+      <div id="add-emp-msg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-emp')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddEmployee()">Add Employee</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-payroll">
+  <div class="modal">
+    <div class="modal-head"><h3>Generate Payroll</h3><button class="modal-close" onclick="closeModal('modal-payroll')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Employee</label><select id="pay-emp-id"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Period Start</label><input id="pay-start" type="date"/></div>
+        <div class="form-group"><label>Period End</label><input id="pay-end" type="date"/></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-payroll')">Cancel</button>
+      <button class="btn btn-green" onclick="submitGeneratePayroll()">Generate</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://localhost:3001/api';
+
+let token       = localStorage.getItem('payaxis_token');
+let currentUser = JSON.parse(localStorage.getItem('payaxis_user') || 'null');
+let employees   = [];
+let activeAttId = null;
+let clockTick   = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function apiFetch(path, opts = {}) {
+  return fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(opts.headers || {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  }).then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  });
+}
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(el._t); el._t = setTimeout(() => el.className = '', 3500);
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function fmt(n)         { return parseFloat(n||0).toLocaleString('en-US',{minimumFractionDigits:2}); }
+function fmtDate(d)     { return d ? new Date(d).toLocaleDateString() : '—'; }
+function fmtDT(d)       { return d ? new Date(d).toLocaleString() : '—'; }
+function initials(n)    { return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); }
+
+// ── Auth ──────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  err.textContent = '';
+  if (!username || !password) { err.textContent = 'Enter username and password.'; return; }
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  try {
+    const data = await apiFetch('/auth/login', { method: 'POST', body: { username, password } });
+    token = data.token; currentUser = data.user;
+    localStorage.setItem('payaxis_token', token);
+    localStorage.setItem('payaxis_user', JSON.stringify(currentUser));
+    bootApp();
+  } catch (e) {
+    err.textContent = e.message || 'Invalid credentials';
+  } finally {
+    btn.innerHTML = 'Sign In'; btn.disabled = false;
+  }
+}
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('payaxis_token');
+  localStorage.removeItem('payaxis_user');
+  if (clockTick) clearInterval(clockTick);
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('employee-portal').classList.remove('visible');
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ── Boot: split by role ───────────────────────────────────────────────────
+function bootApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  if (currentUser.role === 'admin') {
+    bootAdmin();
+  } else {
+    bootEmployee();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  ADMIN
+// ══════════════════════════════════════════════════════════════════════════
+function bootAdmin() {
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('sidebar-username').textContent = currentUser.username;
+  loadEmployees();
+  navigate('dashboard');
+}
+
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
+  const titles = { dashboard:'Dashboard', employees:'Employees', attendance:'Attendance', payroll:'Payroll' };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = '';
+  if (page === 'employees') actions.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openModal('modal-add-emp')">+ Add Employee</button>`;
+  if (page === 'payroll')   actions.innerHTML = `<button class="btn btn-green btn-sm" onclick="openPayrollModal()">+ Generate Payroll</button>`;
+  ({ dashboard: renderDashboard, employees: renderEmployees, attendance: renderAttendance, payroll: renderPayroll }[page] || (() => {}))();
+}
+
+async function loadEmployees() {
+  try { employees = await apiFetch('/employees'); } catch { employees = []; }
+}
+
+async function renderDashboard() {
+  const pc = document.getElementById('page-content');
+  pc.innerHTML = `<div class="stat-grid">
+    <div class="stat-card accent"><div class="stat-label">Total Employees</div><div class="stat-value" id="s-emp">—</div></div>
+    <div class="stat-card green"><div class="stat-label">Present Today</div><div class="stat-value" id="s-pres">—</div></div>
+    <div class="stat-card blue"><div class="stat-label">Total Payroll</div><div class="stat-value" id="s-pay">—</div><div class="stat-sub">All time gross</div></div>
+    <div class="stat-card gold"><div class="stat-label">Pending Clock-outs</div><div class="stat-value" id="s-pend">—</div></div>
+  </div>
+  <div class="data-card">
+    <div class="data-card-head"><h3>Recent Employees</h3></div>
+    <div class="data-card-body" id="dash-emp-list"></div>
+  </div>`;
+  try {
+    const s = await apiFetch('/dashboard');
+    document.getElementById('s-emp').textContent  = s.total_employees;
+    document.getElementById('s-pres').textContent = s.present_today;
+    document.getElementById('s-pay').textContent  = 'LSL' + fmt(s.total_payroll);
+    document.getElementById('s-pend').textContent = s.pending_clockouts;
+  } catch { document.getElementById('s-emp').textContent = employees.length; }
+  const rows = employees.slice(0,5).map(e => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar">${initials(e.first_name+' '+e.last_name)}</div>
+        <div><div style="font-weight:600">${e.first_name} ${e.last_name}</div>
+             <div style="font-size:.78rem;color:var(--muted)">${e.email}</div></div>
+      </div></td>
+      <td>${e.position||'—'}</td>
+      <td><span class="badge badge-blue">LSL ${fmt(e.hourly_rate)}/hr</span></td>
+      <td>${fmtDate(e.hire_date)}</td>
+    </tr>`).join('');
+  document.getElementById('dash-emp-list').innerHTML = `
+    <table class="tbl"><thead><tr><th>Employee</th><th>Position</th><th>Rate</th><th>Hire Date</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function renderEmployees() {
+  const pc = document.getElementById('page-content');
+  if (!employees.length) { pc.innerHTML = `<div style="text-align:center;padding:52px;color:var(--muted)">No employees found.</div>`; return; }
+  const rows = employees.map(e => `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar">${initials(e.first_name+' '+e.last_name)}</div>
+        <div><div style="font-weight:600">${e.first_name} ${e.last_name}</div>
+             <div style="font-size:.78rem;color:var(--muted)">@${e.username}</div></div>
+      </div></td>
+      <td>${e.position||'—'}</td><td>${e.email||'—'}</td><td>${e.phone||'—'}</td>
+      <td><span class="badge badge-green">LSL ${fmt(e.hourly_rate)}/hr</span></td>
+      <td>${fmtDate(e.hire_date)}</td>
+    </tr>`).join('');
+  pc.innerHTML = `<div class="data-card">
+    <div class="data-card-head"><h3>All Employees (${employees.length})</h3></div>
+    <div class="data-card-body"><table class="tbl">
+      <thead><tr><th>Name</th><th>Position</th><th>Email</th><th>Phone</th><th>Rate</th><th>Hired</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+
+async function renderAttendance() {
+  const pc = document.getElementById('page-content');
+  pc.innerHTML = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <select id="att-filter-emp" style="width:200px" onchange="loadAttendance()">
+      <option value="">All Employees</option>
+      ${employees.map(e=>`<option value="${e.employee_id}">${e.first_name} ${e.last_name}</option>`).join('')}
+    </select>
+    <input type="date" id="att-from" onchange="loadAttendance()" style="width:160px"/>
+    <input type="date" id="att-to"   onchange="loadAttendance()" style="width:160px"/>
+  </div><div id="att-table-wrap"></div>`;
+  loadAttendance();
+}
+
+async function loadAttendance() {
+  const emp=document.getElementById('att-filter-emp')?.value||'', from=document.getElementById('att-from')?.value||'', to=document.getElementById('att-to')?.value||'';
+  let p=new URLSearchParams();
+  if(emp) p.append('employee_id',emp); if(from) p.append('from',from); if(to) p.append('to',to);
+  let rows; try { rows=await apiFetch('/attendance?'+p); } catch { rows=[]; }
+  const tbody=rows.map(r=>`<tr>
+    <td>${r.first_name} ${r.last_name}</td>
+    <td>${fmtDT(r.clock_in)}</td>
+    <td>${r.clock_out?fmtDT(r.clock_out):'<span class="badge badge-orange">Active</span>'}</td>
+    <td>${r.hours_worked!=null?r.hours_worked+' hrs':'—'}</td>
+    <td>${!r.clock_out?`<button class="btn btn-secondary btn-sm" onclick="adminClockOut(${r.attendance_id})">Clock Out</button>`:'<span class="badge badge-green">Done</span>'}</td>
+  </tr>`).join('');
+  document.getElementById('att-table-wrap').innerHTML=`<div class="data-card"><div class="data-card-body">
+    <table class="tbl"><thead><tr><th>Employee</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Action</th></tr></thead>
+    <tbody>${tbody||'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No records</td></tr>'}</tbody></table>
+  </div></div>`;
+}
+
+async function adminClockOut(id) {
+  try { const r=await apiFetch('/attendance/'+id+'/clock-out',{method:'PUT'}); toast('Clocked out — '+r.hours_worked+' hrs'); loadAttendance(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+async function renderPayroll() {
+  let rows; try { rows=await apiFetch('/payroll'); } catch { rows=[]; }
+  const tbody=rows.map(r=>`<tr>
+    <td><strong>${r.first_name} ${r.last_name}</strong><br/><span style="font-size:.78rem;color:var(--muted)">${r.position}</span></td>
+    <td>${fmtDate(r.period_start)} – ${fmtDate(r.period_end)}</td>
+    <td><span class="badge badge-blue">${r.total_hours} hrs</span></td>
+    <td><strong style="color:var(--green)">LSL ${fmt(r.gross_pay)}</strong></td>
+    <td><span class="badge badge-green">Processed</span></td>
+  </tr>`).join('');
+  document.getElementById('page-content').innerHTML=`<div class="data-card">
+    <div class="data-card-head"><h3>Payroll Records (${rows.length})</h3></div>
+    <div class="data-card-body"><table class="tbl">
+      <thead><tr><th>Employee</th><th>Period</th><th>Hours</th><th>Gross Pay</th><th>Status</th></tr></thead>
+      <tbody>${tbody||'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No records</td></tr>'}</tbody>
+    </table></div></div>`;
+}
+
+function openPayrollModal() {
+  document.getElementById('pay-emp-id').innerHTML=employees.map(e=>`<option value="${e.employee_id}">${e.first_name} ${e.last_name}</option>`).join('');
+  const now=new Date(),y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('pay-start').value=`${y}-${m}-01`;
+  document.getElementById('pay-end').value=`${y}-${m}-${new Date(y,now.getMonth()+1,0).getDate()}`;
+  openModal('modal-payroll');
+}
+
+async function submitGeneratePayroll() {
+  const body={employee_id:document.getElementById('pay-emp-id').value,period_start:document.getElementById('pay-start').value,period_end:document.getElementById('pay-end').value};
+  try { const r=await apiFetch('/payroll/generate',{method:'POST',body}); toast(`Payroll generated — LSL ${fmt(r.gross_pay)}`); closeModal('modal-payroll'); renderPayroll(); }
+  catch(e) { toast(e.message,'error'); }
+}
+
+async function submitAddEmployee() {
+  const body={
+    first_name:document.getElementById('emp-fname').value, last_name:document.getElementById('emp-lname').value,
+    email:document.getElementById('emp-email').value, phone:document.getElementById('emp-phone').value,
+    username:document.getElementById('emp-username-field').value, password:document.getElementById('emp-password').value,
+    position:document.getElementById('emp-position').value, hourly_rate:parseFloat(document.getElementById('emp-rate').value),
+    hire_date:document.getElementById('emp-hire').value,
+  };
+  try {
+    await apiFetch('/auth/register',{method:'POST',body});
+    toast('Employee added successfully ✅');
+    closeModal('modal-add-emp');
+    await loadEmployees(); renderEmployees();
+  } catch(e) { document.getElementById('add-emp-msg').innerHTML=`<div class="error-msg">${e.message}</div>`; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  EMPLOYEE PORTAL
+// ══════════════════════════════════════════════════════════════════════════
+async function bootEmployee() {
+  document.getElementById('employee-portal').classList.add('visible');
+  document.getElementById('emp-username').textContent = currentUser.username;
+
+  // Load this employee's info
+  try {
+    const emps = await apiFetch('/employees');
+    const me = emps.find(e => e.user_id == currentUser.user_id);
+    if (me) {
+      const fullName = me.first_name + ' ' + me.last_name;
+      document.getElementById('emp-name').textContent     = fullName;
+      document.getElementById('emp-role').textContent     = me.position || 'Employee';
+      document.getElementById('emp-initials').textContent = initials(fullName);
+      currentUser.employee_id = me.employee_id;
+    }
+  } catch { document.getElementById('emp-name').textContent = currentUser.username; }
+
+  startClock();
+  loadEmpAttendance();
+}
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('live-clock').textContent = now.toLocaleTimeString();
+    document.getElementById('live-date').textContent  = now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  }
+  tick(); clockTick = setInterval(tick, 1000);
+}
+
+async function loadEmpAttendance() {
+  if (!currentUser.employee_id) return;
+  try {
+    const records = await apiFetch('/attendance?employee_id=' + currentUser.employee_id);
+    const active  = records.find(r => !r.clock_out);
+    setStatus(active ? 'in' : 'out', active?.attendance_id, active?.clock_in);
+    renderHistory(records.slice(0, 6));
+  } catch {
+    document.getElementById('emp-history').innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Could not load records</div>`;
+  }
+}
+
+function setStatus(status, attId = null, clockInTime = null) {
+  const pill = document.getElementById('status-pill');
+  const text = document.getElementById('status-text');
+  const btnIn  = document.getElementById('btn-in');
+  const btnOut = document.getElementById('btn-out');
+  const sbox   = document.getElementById('session-box');
+
+  if (status === 'in') {
+    pill.className = 'status-pill in';
+    text.textContent = 'Currently clocked in';
+    btnIn.style.display  = 'none';
+    btnOut.style.display = '';
+    sbox.style.display   = '';
+    document.getElementById('session-start').textContent = clockInTime ? new Date(clockInTime).toLocaleTimeString() : '—';
+    activeAttId = attId;
+  } else {
+    pill.className = 'status-pill out';
+    text.textContent = 'Not clocked in';
+    btnIn.style.display  = '';
+    btnOut.style.display = 'none';
+    sbox.style.display   = 'none';
+    activeAttId = null;
+  }
+}
+
+function renderHistory(records) {
+  document.getElementById('emp-history').innerHTML = records.length
+    ? records.map(r => `
+        <div class="hist-row">
+          <div>
+            <div class="hist-date">${fmtDate(r.clock_in)}</div>
+            <div class="hist-sub">${new Date(r.clock_in).toLocaleTimeString()}${r.clock_out?' → '+new Date(r.clock_out).toLocaleTimeString():''}</div>
+          </div>
+          ${r.hours_worked!=null
+            ? `<span class="hist-hrs">${r.hours_worked} hrs</span>`
+            : `<span class="hist-active">Active</span>`}
+        </div>`).join('')
+    : `<div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">No attendance records yet</div>`;
+}
+
+async function empClockIn() {
+  if (!currentUser.employee_id) { toast('Employee record not found','error'); return; }
+  const btn = document.getElementById('btn-in');
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  try {
+    const r = await apiFetch('/attendance/clock-in', { method:'POST', body:{ employee_id: currentUser.employee_id } });
+    setStatus('in', r.attendance_id, new Date().toISOString());
+    toast('Clocked in successfully! ✅');
+    loadEmpAttendance();
+  } catch(e) { toast(e.message,'error'); }
+  finally { btn.innerHTML='▶ Clock In'; btn.disabled=false; }
+}
+
+async function empClockOut() {
+  if (!activeAttId) { toast('No active session','error'); return; }
+  const btn = document.getElementById('btn-out');
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  try {
+    const r = await apiFetch('/attendance/'+activeAttId+'/clock-out', { method:'PUT' });
+    setStatus('out');
+    toast(`Clocked out! ${r.hours_worked} hours logged ✅`);
+    loadEmpAttendance();
+  } catch(e) { toast(e.message,'error'); }
+  finally { btn.innerHTML='■ Clock Out'; btn.disabled=false; }
+}
+
+// Boot
+if (token && currentUser) bootApp();
+</script>
+</body>
+</html>
