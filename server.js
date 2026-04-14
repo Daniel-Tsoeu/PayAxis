@@ -468,6 +468,14 @@ app.get('/api/dashboard', auth('admin'), async (req, res) => {
   res.json({ total_employees, total_payroll, present_today, pending_clockouts });
 });
 
+app.use(function(req, res, next) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  next();
+});
+
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
